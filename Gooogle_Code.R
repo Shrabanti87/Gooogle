@@ -4,7 +4,7 @@ library(grpreg)
 library(mpath)
 library(zic)
 library(SGL)
-
+## Checking 
 
 gooogle<-function(data,xvars,zvars,yvar,group=1:ncol(data), 
                   samegrp.overlap=T,
