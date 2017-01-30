@@ -4,7 +4,7 @@
 Zero inflated count data are common in many fields including health care research, insurance industries etc. which are modeled by ZIP/ZINB regression models. When the associated features/covariates possess an inherent grouping structure (statistically/mechanistically correlated) the traditional variable selection approaches are known to perform poorly. Thus they have to be extended to the grouped predictors selection in order to obtain sparse group solution along with identifying the important variables at both the group and individual levels. For group variable selection in ZIP/ZINB models we consider different commonly used group regularizations such as group LASSO, group SCAD and other group level regularization methods and group bridge, sparse group LASSO and GEL which perform bi-evel selection. The ZIP/ZINB model includes a logistic component to model the presence of excess zeros and a Poisson/negative Binomial component to model the count data. For both the models, log link function is used to  regress the mean of the count model on a set of predictors while the mixture proportion parameter is regresed on another (or same as the count part) set of covariates via the logistic regression.  
 
 The details of the statistical model are as follows:
-<img src="misc/model.pdf" width="600" align="center">
+<img src="misc/model.png" width="600" align="center">
 
 Using LSA approximation on the ZIP/ZINB likelihood we obtain regularized estimates of the regression parameters for zero and count models. The tuning parameter for the final model corresponds to the minimum AIC/BIC values.  
 
