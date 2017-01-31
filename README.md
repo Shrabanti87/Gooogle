@@ -119,9 +119,9 @@ The final model is selected based on the minimum BIC value. From the output we s
 
 ## Citation
 
-Huang, J., S. Ma, H. Xie, and C. Zhang (2009). A group bridge approach for variable selection. Biometrika 96(2), 339{355.
+Huang, J., S. Ma, H. Xie, and C. Zhang (2009). A group bridge approach for variable selection. Biometrika 96(2), 339–355.
 
-Qian, W., Y. Yang, and H. Zou (2016). Tweedie's compound poisson model with groupedelastic net. Journal of Computational and Graphical Statistics 25 (2), 606{625
+Qian, W., Y. Yang, and H. Zou (2016). Tweedie's compound poisson model with groupedelastic net. Journal of Computational and Graphical Statistics 25 (2), 606–625
 
 
 ## Contact
