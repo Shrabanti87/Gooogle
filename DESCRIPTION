@@ -3,7 +3,7 @@ Type: Package
 Title: Fit a group penalized regression path for zero Inflated Count Models
 Version: 0.1.0
 Author: Saptarshi Chatterjee <schatterjee@niu.edu> and Shrabanti Chowdhury
-    <gg0658@wayne.edu>
+    <gg0658@wayne.edu> and Himel Mallick <hmallick@hsph.harvard.edu>
 Maintainer: Saptarshi Chatterjee <schatterjee@niu.edu> and Shrabanti Chowdhury
     <gg0658@wayne.edu>
 Description: Fit a group penalized regression path for zero Inflated Count Models
@@ -21,6 +21,6 @@ Imports:
     SGL,
     stringr,
     gamlss.dist
-License: Wayne State University
+License: MIT
 LazyData: TRUE
 RoxygenNote: 5.0.1
