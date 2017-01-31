@@ -1,10 +1,10 @@
 # Gooogle (Group Regularization for Zero Inflated Count Regression Models)
 
 ## Introduction
-Zero inflated count data are common in many fields including health care research and actuarial science. ZIP/ZINB regression models are commonly used to model these outcomes. However, when features to be associated possess an inherent grouping structure, traditional variable selection approaches are known to produce nonsensical results. In order to be able to perform group variable selection in ZIP/ZINB models, we extend various commonly used group regularizations such as group LASSO and group SCAD to ZIP/ZINB models. These models typically include a logistic component to model the presence of excess zeros and a Poisson/negative Binomial component to model the count data. The details of the statistical model are as follows:
+Zero inflated count data are common in many fields including health care research and actuarial science. Zero-inflated Poisson (ZIP) and Zero-inflated Negative Binomial (ZINB) regression are commonly used to model these outcomes. However, when the features to be associated possess an inherent grouping structure, traditional variable selection approaches are known to produce nonsensical results. In order to be able to perform group variable selection in ZIP/ZINB models, we extend various commonly used group regularizations such as group LASSO and group bridge to ZIP/ZINB models. These mixture models typically include a logistic component to model the presence of excess zeros and a Poisson/negative Binomial component to model the count data. The details of the statistical model are as follows:
 <img src="misc/model.png" width="600" align="center">
 
-With the above formulation, we are able to achieve bi-level variable selection both both zero and count models. The tuning parameter of the final model can be chosen according to minimum AIC/BIC values.  
+With the above formulation, we are able to achieve bi-level variable selection both zero and count models. The tuning parameter of the final model can be chosen according to the minimum AIC/BIC criteria.  
 
 You can install our Gooogle package from Github
 ```r
