@@ -70,7 +70,7 @@ fit.gooogle
 #### Real data  
 Let's try one example on the real data. I am using an auto insurance claim dataset used by Qian et al. (2016) (http://www.tandfonline.com/doi/full/10.1080/10618600.2015.1005213). The scaled dataset along with the grouping indices is available in their HDtweedie package in R. The dataset contains the aggregate claim loss of an auto insurance policy as the response and 21 predictors of which 11 are continuous and 10 are categorical. 
 
-Type ```ibd.data```.
+Type ```auto```.
 ```r
 # claim loss	CAR_TYPE_2	CAR_TYPE_3	CAR_TYPE_4	CAR_TYPE_5	CAR_TYPE_6	MAX_EDUC_2	MAX_EDUC_3	MAX_EDUC_4	MAX_EDUC_5	KIDSDRIV	KIDSDRIV2	KIDSDRIV3	TRAVTIME
 0	0	1	0	0	0	0	1	0	0	0	-0.166666667	0	-0.748425538
