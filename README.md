@@ -1,12 +1,10 @@
 # Gooogle (Group Regularization for Zero Inflated Count Regression Models)
 
 ## Introduction
-Zero inflated count data are common in many fields including health care research, insurance industries etc. which are modeled by ZIP/ZINB regression models. When the associated features/covariates possess an inherent grouping structure (statistically/mechanistically correlated) the traditional variable selection approaches are known to perform poorly. Thus they have to be extended to the grouped predictors selection in order to obtain sparse group solution along with identifying the important variables at both the group and individual levels. For group variable selection in ZIP/ZINB models we consider different commonly used group regularizations such as group LASSO, group SCAD and other group level regularization methods and group bridge, sparse group LASSO and GEL which perform bi-evel selection. The ZIP/ZINB model includes a logistic component to model the presence of excess zeros and a Poisson/negative Binomial component to model the count data. For both the models, log link function is used to  regress the mean of the count model on a set of predictors while the mixture proportion parameter is regresed on another (or same as the count part) set of covariates via the logistic regression.  
-
-The details of the statistical model are as follows:
+Zero inflated count data are common in many fields including health care research and actuarial science. ZIP/ZINB regression models are commonly used to model these outcomes. However, when features to be associated possess an inherent grouping structure, traditional variable selection approaches are known to produce nonsensical results. In order to be able to perform group variable selection in ZIP/ZINB models, we extend various commonly used group regularizations such as group LASSO and group SCAD to ZIP/ZINB models. These models typically include a logistic component to model the presence of excess zeros and a Poisson/negative Binomial component to model the count data. The details of the statistical model are as follows:
 <img src="misc/model.png" width="600" align="center">
 
-Using LSA approximation on the ZIP/ZINB likelihood we obtain regularized estimates of the regression parameters for zero and count models. The tuning parameter for the final model corresponds to the minimum AIC/BIC values.  
+With the above formulation, we are able to achieve bi-level variable selection both both zero and count models. The tuning parameter of the final model can be chosen according to minimum AIC/BIC values.  
 
 You can install our Gooogle package from Github
 ```r
