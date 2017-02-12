@@ -21,6 +21,6 @@ Imports:
     SGL,
     stringr,
     gamlss.dist
-License: MIT
+License: Creative Commons
 LazyData: TRUE
 RoxygenNote: 5.0.1
