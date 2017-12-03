@@ -101,7 +101,7 @@ fit.gooogle
 Similarly we can do a bi-level selection on the simulated data using gBridge penalty in the gooogle function.
 
 ```r
-fit.gooogle <- gooogle(data=data.sim,yvar=yvar,xvars=xvars,zvars=zvars,group=group,dist="poisson",penalty="gBridge")
+fit.gooogle <- gooogle(data=data.sim,yvar=yvar,xvars=xvars,zvars=zvars,group=group,dist="negbin",penalty="gBridge")
 fit.gooogle
 ```
 
@@ -222,13 +222,13 @@ size=c(1,1,3,1,1,3,4,4,4,4,4)
     group<-c(group,rep(k,size[k]))
   }
   
-fit.gooogle <- gooogle(data=data.sim,yvar=yvar,xvars=xvars,zvars=zvars,group=group,dist="poisson",penalty="grLasso")
+fit.gooogle <- gooogle(data=data.sim,yvar=yvar,xvars=xvars,zvars=zvars,group=group,dist="negbin",penalty="grLasso")
 fit.gooogle
 ```
 Similarly we can do a bi-level selection on the simulated data using gBridge penalty in the gooogle function.
 
 ```r
-fit.gooogle <- gooogle(data=data.sim,yvar=yvar,xvars=xvars,zvars=zvars,group=group,dist="poisson",penalty="gBridge")
+fit.gooogle <- gooogle(data=data.sim,yvar=yvar,xvars=xvars,zvars=zvars,group=group,dist="negbin",penalty="gBridge")
 fit.gooogle
 ```
 
