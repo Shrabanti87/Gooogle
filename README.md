@@ -40,13 +40,49 @@ The gooogle function will return a list containing the following objects:
 
 ## Examples
 
-#### Simulated data  
+#### Simulated data 1 
 We construct a simulation function similar to Huang et al. (2009) [ https://doi.org/10.1093/biomet/asp020] which can be used to simulate a dataset according to the zero-inflated Poisson model. We use 40 covariates in 5 groups with 8 covariates in each group. For this example, we assume the covariates in the count part (X) and in the zero part (Z) to be the same (i.e set Z=X).
 
 ```r
-    data.sim<-data.func.sim1(n=500,p=40,ngrp=5,rho=0.4,family="poisson",
-    beta=c(1, -1, -0.5, -0.25, -0.1, 0.1, 0.25, 0.5, 0.75, rep(0.2,8), rep(0,24)),
-    gamma=c(-1,-0.4, -0.3, -0.2, -0.1, 0.1, 0.2, 0.3, 0.4, rep(0.2,8), rep(0,24)))
+data.func.sim1<-function(n,p,ngrp,beta,gamma,rho,family)
+{
+  R<-matrix(rnorm(n*p),n,p)
+  V<-matrix(0,ngrp,ngrp)
+  for(i in 1:ngrp)
+  {
+    for(j in 1:ngrp)
+    {
+      V[i,j]=rho^(abs(i-j))
+    }
+  }
+  Z<-mvrnorm(n,mu=rep(0,ngrp),Sigma=V)
+  
+  X<-matrix(0,n,p)
+  size=rep(p/ngrp,ngrp)
+  for(g in 1:ngrp)
+  {
+    for (j in 1:size[g])
+    {
+      X[,(g-1)*size[g]+j]<-(Z[,g]+R[,(g-1)*size[g]+j])/sqrt(2)
+    }
+  }
+  X<-scale(X)
+  colnames(X)<-paste("X",c(1:ncol(X)),sep="")
+  xvars=colnames(X)
+  zvars=xvars
+
+  ## capture zero inflation ##
+  rn<-round(runif(1)*10^5)
+  set.seed(rn)
+  y<-rzi(n,x=X,z=X,a=beta,b=gamma,family=family)
+   
+  data<-cbind.data.frame(y,X)
+  return(list(data=data,yvar="y",xvars=xvars,zvars=zvars,zeroinfl=zeroinfl))
+}
+
+data.sim<-data.func.sim1(n=500,p=40,ngrp=5,rho=0.4,family="poisson",
+beta=c(1, -1, -0.5, -0.25, -0.1, 0.1, 0.25, 0.5, 0.75, rep(0.2,8), rep(0,24)),
+gamma=c(-1,-0.4, -0.3, -0.2, -0.1, 0.1, 0.2, 0.3, 0.4, rep(0.2,8), rep(0,24)))
 ```
 
 The simulation function returns a dataset with X (the predictor matrix corresponding to count model), Z (the predictor matrix corresponding to zero model) and the outcome with zero abundance (Y) simulated according to the above parameter settings. 
@@ -57,7 +93,8 @@ We can do both group level and bi-level selection in zero inflated count data us
 yvar<-data.sim$yvar
 xvars<-data.sim$xvars
 zvars<-data.sim$zvars
-group<-gamma<-c(-0.4, -0.3, -0.2, -0.1, 0.1, 0.2, 0.3, 0.4, rep(0.2,8), rep(0,24))
+group=rep(1:5,each=8)
+
 fit.gooogle <- gooogle(data=data.sim,yvar=yvar,xvars=xvars,zvars=zvars,group=group,dist="poisson",penalty="grLasso")
 fit.gooogle
 ```
@@ -68,63 +105,311 @@ fit.gooogle <- gooogle(data=data.sim,yvar=yvar,xvars=xvars,zvars=zvars,group=gro
 fit.gooogle
 ```
 
+#### Simulated data 2  
+We consider another simulation study following Park and Yoon (2011) containing a mixture of continuous and categorical predictors which are used to simulate a dataset according to the zero-inflated Negative-Binomial model. We use 30 covariates of 10 continuous divided into 6 groups and 20 categorical divided into 5 equal groups. We assume the covariates in the count part (X) and in the zero part (Z) to be the same (i.e set Z=X).
+
+```r
+data.func.sim3<-function(n,beta,gamma,rho,family) 
+  {
+    p1=6;p2=5;ngrp1=6;ngrp2=5;
+    R<-matrix(rnorm(n*p1),n,p1)
+    w<- rnorm(n,0,1)
+    x1<-matrix(0,n,p1)
+    
+    for(g in 1:ngrp1)
+    {
+      x1[,g]<- (R[,g]+w)/(sqrt(2))
+    }
+    xc<-cbind(x1[,1],x1[,2],x1[,3],(x1[,3])^2,(x1[,3])^3,x1[,4],x1[,5],x1[,6],(x1[,6])^2,(x1[,6])^3)
+    
+    V<-matrix(0,ngrp2,ngrp2)
+    
+    for(i in 1:ngrp2)
+    {
+      for(j in 1:ngrp2)
+      {
+        V[i,j]=rho^(abs(i-j))
+      }
+    }
+    
+    x2<-matrix(mvrnorm(n*p2,mu=rep(0,ngrp2),Sigma=V),n,p2)
+    
+    for(i in 1:n)
+    {
+      for (j in 1:p2)
+      {
+        if (x2[i,j] < qnorm(0.2,0,1)){
+          x2[i,j]=0
+        } else if (qnorm(0.2,0,1) < x2[i,j] && x2[i,j] < qnorm(0.4,0,1)){
+          x2[i,j]=1
+        } else if (qnorm(0.4,0,1) < x2[i,j] && x2[i,j] < qnorm(0.6,0,1)){
+          x2[i,j]=2
+        } else if (qnorm(0.6,0,1) < x2[i,j] && x2[i,j] < qnorm(0.8,0,1)){
+          x2[i,j]=3
+        } else {
+          x2[i,j]=4
+        }
+      }
+    }
+    
+    xd<-NULL
+    
+    for(j in 1:p2)
+    {
+      xd<-cbind(xd,dummy(x2[,j]))
+    }
+    xd<-xd[,-seq(p2,p2*ngrp2,ngrp2)]
+    
+    X<-cbind(scale(xc),xd)
+    colnames(X)<-paste("X",c(1:ncol(X)),sep="")
+    xvars=colnames(X)
+    zvars=xvars
+  
+    y<-rzi(n,x=X,z=X,a=beta,b=gamma,family=family)
+   
+    data<-cbind.data.frame(y,X)
+    return(list(data=data,yvar="y",xvars=xvars,zvars=zvars,zeroinfl=zeroinfl))
+  }
+  
+  
+  
+  betag1<-c(0)
+  betag2<-c(0)
+  betag3<-c(-0.1,0.2,0.1)
+  betag4<-c(0)
+  betag5<-c(0)
+  betag6<-c(2/3,-1,1/3)
+  betag7<-c(-2,-1,1,2)
+  betag8<-c(0,0,0,0)
+  betag9<-c(0,0,0,0)
+  betag10<-rep(0,4)
+  betag11<-c(0,0,0,0)
+ 
+  beta<-c(5,betag1,betag2,betag3,betag4,betag5,betag6,betag7,betag8,betag9,betag10,betag11)
+  
+   gammag1<-0.5
+   gammag2<-0
+   gammag3<-rep(-0.5,3)
+   gammag4<-0.5
+   gammag5<-0
+   gammag6<-rep(0,3)
+   gammag7<-rep(-0.5,4)
+   gammag8<-rep(0,4)
+   gammag9<-rep(0.5,4)
+   gammag10<-rep(0,4)
+   gammag11<-rep(-0.5,4)
+
+   gamma<-c(-1.4,gammag1,gammag2,gammag3,gammag4,gammag5,gammag6,gammag7,gammag8,gammag9,gammag10,gammag11)
+  
+  data.sim<-data.func.sim2(n=400,beta=beta,gamma=gamma,rho=0.4,family="negbin")
+    
+```
+The simulation function returns a dataset with X (the predictor matrix corresponding to count model), Z (the predictor matrix corresponding to zero model) and the outcome with zero abundance (Y) simulated according to the above parameter settings. 
+
+We can do both group level and bi-level selection in zero inflated count data using gooogle function. If we want to do a group level selection we can use any of the penalties among grLasso, grMCP or grSCAD. Below is an example of using gooogle in the simulated dataset using grLasso.
+
+```r
+yvar<-data.sim$yvar
+xvars<-data.sim$xvars
+zvars<-data.sim$zvars
+size=c(1,1,3,1,1,3,4,4,4,4,4)
+  ngrp<-length(size)
+  
+  # group
+  group<-NULL
+  for (k in 1:ngrp)
+  {
+    group<-c(group,rep(k,size[k]))
+  }
+  
+fit.gooogle <- gooogle(data=data.sim,yvar=yvar,xvars=xvars,zvars=zvars,group=group,dist="poisson",penalty="grLasso")
+fit.gooogle
+```
+Similarly we can do a bi-level selection on the simulated data using gBridge penalty in the gooogle function.
+
+```r
+fit.gooogle <- gooogle(data=data.sim,yvar=yvar,xvars=xvars,zvars=zvars,group=group,dist="poisson",penalty="gBridge")
+fit.gooogle
+```
+
+
+
+
 #### Real data  
-Let's try one example on the real data. I am using an auto insurance claim dataset used by Qian et al. (2016) (http://www.tandfonline.com/doi/full/10.1080/10618600.2015.1005213). The scaled dataset along with the grouping indices is available in their HDtweedie package in R. The dataset contains the aggregate claim loss of an auto insurance policy as the response and 21 predictors of which 11 are continuous and 10 are categorical. 
+Let's try one example on the real data. I am using docvisit dataset from library zic. Similar to previous studies (Jochmann, 2013), we express each continuous predictor as a group of three cubic spline variables, resulting in 24 candidate predictors with 5 triplets and and 9 singleton groups.
 
-Type ```auto```.
+####################
 ```r
-# claim loss	CAR_TYPE_2	CAR_TYPE_3	CAR_TYPE_4	CAR_TYPE_5	CAR_TYPE_6	MAX_EDUC_2	MAX_EDUC_3	MAX_EDUC_4	MAX_EDUC_5	KIDSDRIV	KIDSDRIV2	KIDSDRIV3	TRAVTIME
-0	0	1	0	0	0	0	1	0	0	0	-0.166666667	0	-0.748425538
-0	0	0	0	0	1	1	0	0	0	0	-0.166666667	0	-0.494449479
-19	0	0	0	1	0	0	0	0	1	0	-0.166666667	0	0.140490669
-0	0	0	1	0	0	1	0	0	0	0	-0.166666667	0	0.775430816
-0	0	0	0	1	0	0	0	0	0	0	-0.166666667	0	-0.049991376
-2	0	0	0	0	1	1	0	0	0	1	0.333333333	0.2	0.648442787
-0	0	0	0	1	0	1	0	0	0	0	-0.166666667	0	0.013502639
-0	0	0	1	0	0	0	0	1	0	0	-0.166666667	0	-1.192883642
-0	0	0	0	1	0	0	0	0	0	0	-0.166666667	0	0.902418846
-45	0	1	0	0	0	0	1	0	0	0	-0.166666667	0	0.711936802
-0	0	0	0	0	0	0	0	0	0	0	-0.166666667	0	1.156394905
-0	0	0	1	0	0	0	1	0	0	0	-0.166666667	0	-1.129389627
-0	0	0	0	1	0	0	1	0	0	0	-0.166666667	0	-0.494449479
-0	0	1	0	0	0	1	0	0	0	0	-0.166666667	0	-0.24047342
-0	0	1	0	0	0	0	0	0	1	0	-0.166666667	0	1.981817097
-0	0	1	0	0	0	0	0	0	1	0	-0.166666667	0	-1.002401597
-0	0	0	0	1	0	0	1	0	0	0	-0.166666667	0	0.838924831
-0	0	0	0	1	0	0	0	0	1	0	-0.166666667	0	-1.510353716
-0	0	0	0	1	0	0	1	0	0	0	-0.166666667	0	0.902418846
-0	1	0	0	0	0	1	0	0	0	0	-0.166666667	0	-0.748425538
-0	0	0	1	0	0	1	0	0	0	0	-0.166666667	0	0.394466728
-0	0	1	0	0	0	0	0	1	0	0	-0.166666667	0	-1.510353716
-0	0	1	0	0	0	0	1	0	0	0	-0.166666667	0	-0.621437509
-0	0	1	0	0	0	0	0	0	0	0	-0.166666667	0	-0.303967435
-8	0	0	0	1	0	0	1	0	0	0	-0.166666667	0	0.203984683
-9	0	0	1	0	0	0	0	1	0	2	1.833333333	3.4	-0.303967435
-4	0	0	0	1	0	0	0	0	1	0	-0.166666667	0	-0.36746145
-0	0	0	0	1	0	0	0	0	1	0	-0.166666667	0	-1.446859701
-0	0	1	0	0	0	1	0	0	0	1	0.333333333	0.2	-0.557943494
-8	0	0	0	1	0	1	0	0	0	0	-0.166666667	0	-0.430955464
-...
-...
+
+library(zic)
+library(splines)
+
+data("docvisits")
+
+n<-nrow(docvisits)
+age<-bs(docvisits$age,3)[1:n,]
+hlth<-bs(docvisits$health,3)[1:n,]
+hdeg<-bs(docvisits$hdegree,3)[1:n,]
+schl<-bs(docvisits$schooling,3)[1:n,]
+hhin<-bs(docvisits$hhincome,3)[1:n,]
+
+attach(docvisits)
+doc.spline<-cbind.data.frame(docvisits$docvisits,age,hlth,hdeg,schl,hhin,handicap,married,children,self,civil,bluec,employed,public,addon)
+
+names(doc.spline)[1:16]<-c("docvisits",paste("age",1:3,sep=""),paste("health",1:3,sep=""),paste("hdegree",1:3,sep=""),paste("schooling",1:3,sep=""),paste("hhincome",1:3,sep=""))
 ```
+#####################################################################
 
-Note that for each of the 11 continuous predictors the polynomials (up to order 3)  have been created to treat them as single group. For the categorical variables (more than 2 levels) dummy variables are created according to the number of levels of each.     
-
-
-We can run the gooogle function to this real data to fit a ZIP model using group bridge regularization. 
+We can run the gooogle function and calculate MAE and MASE to compare the performance of Gooogle methods with that of EM LASSO.
 
 ```r
-fit.poisson<-gooogle(data=data,yvar=yvar,xvars=xvars,zvars=zvars,group=group,samegrp.overlap=T,crit="BIC"
-dist="poisson",penalty="gBridge")
-fit.poisson
-```
-The final model is selected based on the minimum BIC value. From the output we see that out of 56 variables only 8 variables distributed across 4 groups (JOBCLASS, MVRPTS, REVOLKED and  AREA) for count model and 5 variables distributed across 3 groups (JOBCLASS, MVRPTS and AREA) for the zero model have been selected in the final model. The output also gives the minimum BIC value and the corresponding AIC and the log likelihood for the final fitted model.
+  data<-doc.spline
+  group=c(rep(1:5,each=3),(6:14))
+  
+  yvar<-names(data)[1]
+  xvars<-names(data)[-1]
+  zvars<-xvars
+
+  ################# set up folds for cross-validation ###############
+  ITER<- 100
+  penalties<-c("grLasso", "grMCP", "grSCAD",
+               "gBridge")
+  
+  library(cvTools)
+  folds <- cvFolds(nrow(data), K = 5, R = ITER)
+  cv<-cbind.data.frame(folds$which,folds$subsets)
+  names(cv)<-c("fold",paste("iter",1:ITER,sep=""))
+  
+  ################## compute MAE and MASE for different penalties and likelihood #############
+  measures.list<-list()
+  coeff.list<-list()
+  
+  for(penalty in penalties)
+  {
+      measures<-NULL
+      coeff.count.vec<-NULL
+      coeff.zero.vec<-NULL
+      
+      for (k in 1:ITER)
+      {
+        print(c(penalty,like,k))
+        
+        y.test.comp.vec<-NULL
+        y.pred.comp.vec<-NULL
+        y.train.comp.vec<-NULL
+        
+        time.taken<-0
+        for (i in 1:5)
+        {
+          train.idx<-folds$subsets[folds$which!=i,k]
+          train<-data[train.idx,]
+          test<-data[-train.idx,]
+          
+          ptm<-proc.time()
+          if(penalty=="zeng_Lasso")
+          {
+            fit<-gooogle(data=train,yvar=yvar,xvars=xvars,zvars=zvars,group=rep(1,ncol(data)),samegrp.overlap=T,dist=dist,penalty="gBridge",like=like)} else {
+              fit<-gooogle(data=train,yvar=yvar,xvars=xvars,zvars=zvars,group=group,samegrp.overlap=T,dist=dist,penalty=penalty,like=like)
+            }
+          time.taken<-time.taken+round((proc.time()-ptm)[3],3)
+          
+          z.test<-as.matrix(cbind(1,test[,zvars]))
+          phi.hat<-1/(1+exp(-z.test%*%fit$coefficients$zero))
+          x.test<-as.matrix(cbind(1,test[,xvars]))
+          lam.hat<-exp(x.test%*%fit$coefficients$count)
+          y.pred<-(1-phi.hat)*lam.hat
+          y.test<-test[,yvar]
+          y.train<-train[,yvar]
+         
+          coeff.count<-fit$coefficients$count
+          coeff.zero<-fit$coefficients$zero
+          
+          y.test.comp.vec<-c(y.test.comp.vec,y.test)
+          y.pred.comp.vec<-c(y.pred.comp.vec,y.pred)
+          y.train.comp.vec<-c(y.train.comp.vec,y.train)
+
+          coeff.count.vec<-rbind(coeff.count.vec,c(penalty=penalty,iteration=k,fold=i,coeff.count))
+          coeff.zero.vec<-rbind(coeff.zero.vec,c(penalty=penalty,iteration=k,fold=i,coeff.zero))
+        }
+        
+        forecast <- structure(list(mean=y.pred.comp.vec, fitted=y.test.comp.vec, x=y.train.comp.vec), class='forecast')
+                
+        measures<-rbind(measures,c(iter=k,accuracy(forecast,y.test)[2,],time.taken=time.taken))
+      }
+      #mean.measures<-apply(measures,2,mean)
+      
+      measures.list[[paste(penalty,sep="")]]<-measures[,-c(5:6)]
+      coeff.list[[paste(penalty,sep="")]]<-list(count=coeff.count.vec,zero=coeff.zero.vec)
+  }
+  
+  ################## --------------- Compute same measures for EM ---------------- ########################
+  
+  fit.formula<-as.formula(paste(yvar,"~",paste(paste(xvars,collapse="+"),"|",paste(zvars,collapse="+")),sep=""))
+  
+  coeff.count.vec_EM<-NULL
+  coeff.zero.vec_EM<-NULL
+  measures_EM<-NULL
+    
+  for (k in 1:100)
+  {
+    print(c("EM_Lasso",k))
+    
+    y.test.comp.vec<-NULL
+    y.pred.comp.vec<-NULL
+    y.train.comp.vec<-NULL
+    
+    time.taken<-0
+    for (i in 1:5)
+    {
+      train.idx<-folds$subsets[folds$which!=i,k]
+      train<-data[train.idx,]
+      test<-data[-train.idx,]
+      
+      ptm<-proc.time()
+      fit.em<-zipath(formula=fit.formula,data=train,family=dist)
+      time.taken<-time.taken+round((proc.time()-ptm)[3],3)
+      
+      gammahat<-fit.em$coefficients$zero[,bic.idx]
+      betahat<-fit.em$coefficients$count[,bic.idx]
+      z.test<-as.matrix(cbind(1,test[,zvars]))
+      phi.hat<-1/(1+exp(-z.test%*%gammahat))
+      x.test<-as.matrix(cbind(1,test[,xvars]))
+      lam.hat<-exp(x.test%*%betahat)
+      y.pred<-(1-phi.hat)*lam.hat
+      y.test<-test[,yvar]
+      y.train<-train[,yvar]
+      coeff.count_EM<-betahat
+      coeff.zero_EM<-gammahat
+      
+      y.test.comp.vec<-c(y.test.comp.vec,y.test)
+      y.pred.comp.vec<-c(y.pred.comp.vec,y.pred)
+      y.train.comp.vec<-c(y.train.comp.vec,y.train)
+      coeff.count.vec_EM<-rbind(coeff.count.vec_EM,c(penalty=penalty,iteration=k,fold=i,coeff.count_EM))
+      coeff.zero.vec_EM<-rbind(coeff.zero.vec_EM,c(penalty=penalty,iteration=k,fold=i,coeff.zero_EM))
+    }
+    
+    forecast <- structure(list(mean=y.pred.comp.vec, fitted=y.test.comp.vec, x=y.train.comp.vec), class='forecast')
+    
+    measures_EM<-rbind(measures_EM,c(iter=k,accuracy(forecast,y.test)[2,],time=time.taken))
+  }
+  coeff.list[["EM"]]<-list(count=coeff.count.vec_EM,zero=coeff.zero.vec_EM)
+  
+  measures.list[["EM"]]<-measures_EM[,-c(5:6)]
+  
+  ########### doc.cv_dist is the final output containing the measures for all methods including EM and coefficients are saved for each fold within each iteration #########################
+  
+  doc.cv<-list(measures=measures.list,coeff=coeff.list,cv=cv)
+  ```
 
 ## Citation
 
 Huang, J., S. Ma, H. Xie, and C. Zhang (2009). A group bridge approach for variable selection. Biometrika 96(2), 339–355.
 
-Qian, W., Y. Yang, and H. Zou (2016). Tweedie's compound poisson model with groupedelastic net. Journal of Computational and Graphical Statistics 25 (2), 606–625.
+Park, C. and Y. Yoon (2011). Bridge regression: adaptivity and group selection. Journal of
+Statistical Planning and Inference 141 (11), 3506{3519.
+
+Jochmann, M. (2013). What belongs where? variable selection for zero-in
+ated count models with an application to the demand for health care. Computational Statistics 28, 1947{1964.
 
 
 ## Contact
