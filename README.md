@@ -95,7 +95,7 @@ xvars<-data.sim$xvars
 zvars<-data.sim$zvars
 group=rep(1:5,each=8)
 
-fit.gooogle <- gooogle(data=data.sim,yvar=yvar,xvars=xvars,zvars=zvars,group=group,dist="poisson",penalty="grLasso")
+fit.gooogle <- gooogle(data=data.sim,yvar=yvar,xvars=xvars,zvars=zvars,group=group,dist="negbin",penalty="grLasso")
 fit.gooogle
 ```
 Similarly we can do a bi-level selection on the simulated data using gBridge penalty in the gooogle function.
