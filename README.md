@@ -28,12 +28,12 @@ gooogle(data=data,yvar=yvar,xvars=xvars,zvars=xvars,group=rep(1,14),dist="poisso
 - **zvars**: the vector of variable names to be included in zero model.
 - **group**: the vector of integers indicating the grouping structure among predictors. 
 - **dist**: the distribution of count model (Poisson or Negative Binomial).   
-- **penalty**: the penalty to be applied for regularization. For group selection, it is one of grLasso, grMCP or grSCAD while for bi-level selection it is gBridge, gel, cMCP or SGL.  
+- **penalty**: the penalty to be applied for regularization. For group selection, it is one of grLasso, grMCP or grSCAD while for bi-level selection it is gBridge.  
 
 For greatest efficiency and least ambiguity, it is best if group is a vector of consecutive integers. If any coefficients are to be included in the model without being penalized, their grouping index should be zero. 
 
 The gooogle function will return a list containing the following objects:
-- **coefficients**: a list containing the estimates for the count and zero model.  
+- **coefficients**: a list containing the estimates for the count and zero inflation model.  
 - **aic**: AIC for the fitted model.  
 - **bic**: BIC for the fitted model.  
 - **loglik**: Log-likelihood for the fitted model.
@@ -41,11 +41,15 @@ The gooogle function will return a list containing the following objects:
 ## Examples
 
 #### Simulated data 1 
-We construct a simulation function similar to Huang et al. (2009) [ https://doi.org/10.1093/biomet/asp020] which can be used to simulate a dataset according to the zero-inflated Poisson model. We use 40 covariates in 5 groups with 8 covariates in each group. For this example, we assume the covariates in the count part (X) and in the zero part (Z) to be the same (i.e set Z=X).
+We construct a simulation function similar to Huang et al. (2009) [ https://doi.org/10.1093/biomet/asp020] which can be used to simulate a dataset according to the zero-inflated negative binomial model. We use 40 covariates in 5 groups with 8 covariates in each group. For this example, we assume the covariates in the count part (X) and in the zero inflation part (Z) to be the same (i.e set Z=X).
 
 ```r
-data.func.sim1<-function(n,p,ngrp,beta,gamma,rho,family)
+library(mpath)
+
+data.sim.func<-function(n,p,ngrp,beta,gamma,rho,family,seedval)
 {
+  set.seed(seedval)
+  
   R<-matrix(rnorm(n*p),n,p)
   V<-matrix(0,ngrp,ngrp)
   for(i in 1:ngrp)
@@ -70,170 +74,162 @@ data.func.sim1<-function(n,p,ngrp,beta,gamma,rho,family)
   colnames(X)<-paste("X",c(1:ncol(X)),sep="")
   xvars=colnames(X)
   zvars=xvars
-
+  
   ## capture zero inflation ##
-  rn<-round(runif(1)*10^5)
-  set.seed(rn)
   y<-rzi(n,x=X,z=X,a=beta,b=gamma,family=family)
-   
+  
   data<-cbind.data.frame(y,X)
-  return(list(data=data,yvar="y",xvars=xvars,zvars=zvars,zeroinfl=zeroinfl))
+  return(list(data=data,yvar="y",xvars=xvars,zvars=zvars))
 }
 
-data.sim<-data.func.sim1(n=500,p=40,ngrp=5,rho=0.4,family="negbin",
-beta=c(1, -1, -0.5, -0.25, -0.1, 0.1, 0.25, 0.5, 0.75, rep(0.2,8), rep(0,24)),
-gamma=c(-1,-0.4, -0.3, -0.2, -0.1, 0.1, 0.2, 0.3, 0.4, rep(0.2,8), rep(0,24)))
+data.sim<-data.sim.func(n=500,p=40,ngrp=5,rho=0.4,family="poisson",beta=c(5,-1, -0.5, -0.25, -0.1, 0.1, 0.25, 0.5, 0.75, rep(0.2,8), rep(0,24)),gamma=c(0.5,-0.4, -0.3, -0.2, -0.1, 0.1, 0.2, 0.3, 0.4, rep(0.2,8), rep(0,24)),seedval=1)
 ```
 
 The simulation function returns a dataset with X (the predictor matrix corresponding to count model), Z (the predictor matrix corresponding to zero model) and the outcome with zero abundance (Y) simulated according to the above parameter settings. 
 
-We can do both group level and bi-level selection in zero inflated count data using gooogle function. If we want to do a group level selection we can use any of the penalties among grLasso, grMCP or grSCAD. Below is an example of using gooogle in the simulated dataset using grLasso.
+We can do both group level and bi-level selection in zero inflated count data using gooogle function. If we want to do a group level selection we can use any of the penalties among grLasso, grMCP or grSCAD. Below is an example of using gooogle in the simulated dataset using gBridge.
 
 ```r
+data=data.sim$data
 yvar<-data.sim$yvar
 xvars<-data.sim$xvars
 zvars<-data.sim$zvars
 group=rep(1:5,each=8)
 
-fit.gooogle <- gooogle(data=data.sim,yvar=yvar,xvars=xvars,zvars=zvars,group=group,dist="negbin",penalty="grLasso")
+fit.gooogle <- gooogle(data=data,yvar=yvar,xvars=xvars,zvars=zvars,group=group,dist="negbin",penalty="gBridge")
 fit.gooogle
 ```
+
+<!---
 Similarly we can do a bi-level selection on the simulated data using gBridge penalty in the gooogle function.
 
 ```r
-fit.gooogle <- gooogle(data=data.sim,yvar=yvar,xvars=xvars,zvars=zvars,group=group,dist="negbin",penalty="gBridge")
+fit.gooogle <- gooogle(data=data,yvar=yvar,xvars=xvars,zvars=zvars,group=group,dist="negbin",penalty="gBridge")
 fit.gooogle
 ```
+-->
 
 #### Simulated data 2  
 We consider another simulation study following Park and Yoon (2011) containing a mixture of continuous and categorical predictors which are used to simulate a dataset according to the zero-inflated Negative-Binomial model. We use 30 covariates of 10 continuous divided into 6 groups and 20 categorical divided into 5 equal groups. We assume the covariates in the count part (X) and in the zero part (Z) to be the same (i.e set Z=X).
 
 ```r
-data.func.sim3<-function(n,beta,gamma,rho,family) 
-  {
-    p1=6;p2=5;ngrp1=6;ngrp2=5;
-    R<-matrix(rnorm(n*p1),n,p1)
-    w<- rnorm(n,0,1)
-    x1<-matrix(0,n,p1)
-    
-    for(g in 1:ngrp1)
-    {
-      x1[,g]<- (R[,g]+w)/(sqrt(2))
-    }
-    xc<-cbind(x1[,1],x1[,2],x1[,3],(x1[,3])^2,(x1[,3])^3,x1[,4],x1[,5],x1[,6],(x1[,6])^2,(x1[,6])^3)
-    
-    V<-matrix(0,ngrp2,ngrp2)
-    
-    for(i in 1:ngrp2)
-    {
-      for(j in 1:ngrp2)
-      {
-        V[i,j]=rho^(abs(i-j))
-      }
-    }
-    
-    x2<-matrix(mvrnorm(n*p2,mu=rep(0,ngrp2),Sigma=V),n,p2)
-    
-    for(i in 1:n)
-    {
-      for (j in 1:p2)
-      {
-        if (x2[i,j] < qnorm(0.2,0,1)){
-          x2[i,j]=0
-        } else if (qnorm(0.2,0,1) < x2[i,j] && x2[i,j] < qnorm(0.4,0,1)){
-          x2[i,j]=1
-        } else if (qnorm(0.4,0,1) < x2[i,j] && x2[i,j] < qnorm(0.6,0,1)){
-          x2[i,j]=2
-        } else if (qnorm(0.6,0,1) < x2[i,j] && x2[i,j] < qnorm(0.8,0,1)){
-          x2[i,j]=3
-        } else {
-          x2[i,j]=4
-        }
-      }
-    }
-    
-    xd<-NULL
-    
-    for(j in 1:p2)
-    {
-      xd<-cbind(xd,dummy(x2[,j]))
-    }
-    xd<-xd[,-seq(p2,p2*ngrp2,ngrp2)]
-    
-    X<-cbind(scale(xc),xd)
-    colnames(X)<-paste("X",c(1:ncol(X)),sep="")
-    xvars=colnames(X)
-    zvars=xvars
+library(mpath)
+library(dummies)
+
+data.sim.func<-function(n,size,beta,gamma,rho,family,seedval) 
+{
+  set.seed(seedval)
   
-    y<-rzi(n,x=X,z=X,a=beta,b=gamma,family=family)
-   
-    data<-cbind.data.frame(y,X)
-    return(list(data=data,yvar="y",xvars=xvars,zvars=zvars,zeroinfl=zeroinfl))
+  p1=6;p2=5;ngrp1=6;ngrp2=5;
+  R<-matrix(rnorm(n*p1),n,p1)
+  w<- rnorm(n,0,1)
+  x1<-matrix(0,n,p1)
+  
+  for(g in 1:ngrp1)
+  {
+    x1[,g]<- (R[,g]+w)/(sqrt(2))
+  }
+  xc<-cbind(x1[,1],x1[,2],x1[,3],(x1[,3])^2,(x1[,3])^3,x1[,4],x1[,5],x1[,6],(x1[,6])^2,(x1[,6])^3)
+  
+  V<-matrix(0,ngrp2,ngrp2)
+  
+  for(i in 1:ngrp2)
+  {
+    for(j in 1:ngrp2)
+    {
+      V[i,j]=rho^(abs(i-j))
+    }
   }
   
+  x2<-matrix(mvrnorm(n*p2,mu=rep(0,ngrp2),Sigma=V),n,p2)
   
+  for(i in 1:n)
+  {
+    for (j in 1:p2)
+    {
+      if (x2[i,j] < qnorm(0.2,0,1)){
+        x2[i,j]=0
+      } else if (qnorm(0.2,0,1) < x2[i,j] && x2[i,j] < qnorm(0.4,0,1)){
+        x2[i,j]=1
+      } else if (qnorm(0.4,0,1) < x2[i,j] && x2[i,j] < qnorm(0.6,0,1)){
+        x2[i,j]=2
+      } else if (qnorm(0.6,0,1) < x2[i,j] && x2[i,j] < qnorm(0.8,0,1)){
+        x2[i,j]=3
+      } else {
+        x2[i,j]=4
+      }
+    }
+  }
   
-  betag1<-c(0)
-  betag2<-c(0)
-  betag3<-c(-0.1,0.2,0.1)
-  betag4<-c(0)
-  betag5<-c(0)
-  betag6<-c(2/3,-1,1/3)
-  betag7<-c(-2,-1,1,2)
-  betag8<-c(0,0,0,0)
-  betag9<-c(0,0,0,0)
-  betag10<-rep(0,4)
-  betag11<-c(0,0,0,0)
- 
-  beta<-c(5,betag1,betag2,betag3,betag4,betag5,betag6,betag7,betag8,betag9,betag10,betag11)
+  xd<-NULL
   
-   gammag1<-0.5
-   gammag2<-0
-   gammag3<-rep(-0.5,3)
-   gammag4<-0.5
-   gammag5<-0
-   gammag6<-rep(0,3)
-   gammag7<-rep(-0.5,4)
-   gammag8<-rep(0,4)
-   gammag9<-rep(0.5,4)
-   gammag10<-rep(0,4)
-   gammag11<-rep(-0.5,4)
+  for(j in 1:p2)
+  {
+    xd<-cbind(xd,dummy(x2[,j]))
+  }
+  xd<-xd[,-seq(p2,p2*ngrp2,ngrp2)]
+  
+  X<-cbind(scale(xc),xd)
+  colnames(X)<-paste("X",c(1:ncol(X)),sep="")
+  xvars=colnames(X)
+  zvars=xvars
+  
+  y<-rzi(n,x=X,z=X,a=beta,b=gamma,family=family)
+  
+  data<-cbind.data.frame(y,X)
+  return(list(data=data,yvar="y",xvars=xvars,zvars=zvars,zeroinfl=zeroinfl))
+}
 
-   gamma<-c(-1.4,gammag1,gammag2,gammag3,gammag4,gammag5,gammag6,gammag7,gammag8,gammag9,gammag10,gammag11)
-  
-  data.sim<-data.func.sim2(n=400,beta=beta,gamma=gamma,rho=0.4,family="negbin")
+betag1<-c(0)
+betag2<-c(0)
+betag3<-c(-0.1,0.2,0.1)
+betag4<-c(0)
+betag5<-c(0)
+betag6<-c(2/3,-1,1/3)
+betag7<-c(-2,-1,1,2)
+betag8<-c(0,0,0,0)
+betag9<-c(0,0,0,0)
+betag10<-rep(0,4)
+betag11<-c(0,0,0,0)
+
+
+beta<-c(5,betag1,betag2,betag3,betag4,betag5,betag6,betag7,betag8,betag9,betag10,betag11)
+
+gamma<-c(-0.15,beta[-1])
+data.sim<-data.sim.func(n=400,beta=beta,gamma=gamma,rho=0.4,family="negbin",seedval=1)
     
 ```
 The simulation function returns a dataset with X (the predictor matrix corresponding to count model), Z (the predictor matrix corresponding to zero model) and the outcome with zero abundance (Y) simulated according to the above parameter settings. 
 
-We can do both group level and bi-level selection in zero inflated count data using gooogle function. If we want to do a group level selection we can use any of the penalties among grLasso, grMCP or grSCAD. Below is an example of using gooogle in the simulated dataset using grLasso.
+We can do both group level and bi-level selection in zero inflated count data using gooogle function. If we want to do a group level selection we can use any of the penalties among grLasso, grMCP or grSCAD. Below is an example of using gooogle in the simulated dataset using gBridge.
 
 ```r
+data<-data.sim$data
 yvar<-data.sim$yvar
 xvars<-data.sim$xvars
 zvars<-data.sim$zvars
 size=c(1,1,3,1,1,3,4,4,4,4,4)
-  ngrp<-length(size)
-  
-  # group
-  group<-NULL
-  for (k in 1:ngrp)
-  {
-    group<-c(group,rep(k,size[k]))
-  }
-  
-fit.gooogle <- gooogle(data=data.sim,yvar=yvar,xvars=xvars,zvars=zvars,group=group,dist="negbin",penalty="grLasso")
+ngrp<-length(size)
+
+# group
+group<-NULL
+for (k in 1:ngrp)
+{
+  group<-c(group,rep(k,size[k]))
+}
+
+fit.gooogle <- gooogle(data=data,yvar=yvar,xvars=xvars,zvars=zvars,group=group,dist="negbin",penalty="gBridge")
 fit.gooogle
 ```
+
+<!---
 Similarly we can do a bi-level selection on the simulated data using gBridge penalty in the gooogle function.
 
 ```r
 fit.gooogle <- gooogle(data=data.sim,yvar=yvar,xvars=xvars,zvars=zvars,group=group,dist="negbin",penalty="gBridge")
 fit.gooogle
 ```
-
-
-
+-->
 
 #### Real data  
 Let's try one example on the real data. I am using docvisit dataset from library zic. Similar to previous studies (Jochmann, 2013), we express each continuous predictor as a group of three cubic spline variables, resulting in 24 candidate predictors with 5 triplets and and 9 singleton groups.
