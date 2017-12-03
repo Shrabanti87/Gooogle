@@ -80,7 +80,7 @@ data.func.sim1<-function(n,p,ngrp,beta,gamma,rho,family)
   return(list(data=data,yvar="y",xvars=xvars,zvars=zvars,zeroinfl=zeroinfl))
 }
 
-data.sim<-data.func.sim1(n=500,p=40,ngrp=5,rho=0.4,family="poisson",
+data.sim<-data.func.sim1(n=500,p=40,ngrp=5,rho=0.4,family="negbin",
 beta=c(1, -1, -0.5, -0.25, -0.1, 0.1, 0.25, 0.5, 0.75, rep(0.2,8), rep(0,24)),
 gamma=c(-1,-0.4, -0.3, -0.2, -0.1, 0.1, 0.2, 0.3, 0.4, rep(0.2,8), rep(0,24)))
 ```
