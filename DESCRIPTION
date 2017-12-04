@@ -1,26 +1,13 @@
 Package: Gooogle
 Type: Package
-Title: Fit a group penalized regression path for zero Inflated Count Models
-Version: 0.1.0
-Author: Saptarshi Chatterjee <schatterjee@niu.edu> and Shrabanti Chowdhury
-    <gg0658@wayne.edu> and Himel Mallick <hmallick@hsph.harvard.edu>
-Maintainer: Saptarshi Chatterjee <schatterjee@niu.edu> and Shrabanti Chowdhury
-    <gg0658@wayne.edu>
-Description: Fit a group penalized regression path for zero Inflated Count Models
-Depends:
-    R (>= 2.1.0), MASS,
-    pscl,
-    grpreg,
-    SGL,
-    stringr,
-    gamlss.dist
-Imports:
-    MASS,
-    pscl,
-    grpreg,
-    SGL,
-    stringr,
-    gamlss.dist
-License: Creative Commons
+Title: Group Regularization for Zero-inflated Count Models
+Version: 0.1
+Date: 2017-01-29
+Author: Saptarshi Chatterjee <schatterjee@niu.edu>, Shrabanti Chowdhury <gg0658@wayne.edu> and Himel Mallick <hmallick@hsph.harvard.edu>
+Maintainer: Saptarshi Chatterjee <schatterjee@niu.edu> and Shrabanti Chowdhury <gg0658@wayne.edu>
+Description: Efficient algorithm for fitting zero inflated count models in the presence of intrinsic grouping structure in the covariate space. This  includes group level selection methods such as group lasso, group MCP and group SCAD and bi-level selection method such as group bridge.
+Depends: R (>= 2.1.0), MASS
+License: Harvard
 LazyData: TRUE
-RoxygenNote: 5.0.1
+Imports: pscl, grpreg, stringr, gamlss.dist
+RoxygenNote: 6.0.1
