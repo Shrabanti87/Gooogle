@@ -85,7 +85,7 @@ data.sim.func<-function(n,p,ngrp,beta,gamma,rho,family,seedval)
 data.sim<-data.sim.func(n=500,p=40,ngrp=5,rho=0.4,family="poisson",beta=c(5,-1, -0.5, -0.25, -0.1, 0.1, 0.25, 0.5, 0.75, rep(0.2,8), rep(0,24)),gamma=c(0.5,-0.4, -0.3, -0.2, -0.1, 0.1, 0.2, 0.3, 0.4, rep(0.2,8), rep(0,24)),seedval=1)
 ```
 
-The simulation function returns a dataset with X (the predictor matrix corresponding to count model), Z (the predictor matrix corresponding to zero model) and the outcome with zero abundance (Y) simulated according to the above parameter settings. 
+The simulation function returns a dataset with X (the predictor matrix corresponding to count model), Z (the predictor matrix corresponding to excess zero model) and the outcome with zero abundance (Y) simulated according to the above parameter settings. 
 
 We can do both group level and bi-level selection in zero inflated count data using gooogle function. If we want to do a group level selection we can use any of the penalties among grLasso, grMCP or grSCAD. Below is an example of using gooogle in the simulated dataset using gBridge.
 
@@ -199,7 +199,7 @@ gamma<-c(-0.15,beta[-1])
 data.sim<-data.sim.func(n=400,beta=beta,gamma=gamma,rho=0.4,family="negbin",seedval=1)
     
 ```
-The simulation function returns a dataset with X (the predictor matrix corresponding to count model), Z (the predictor matrix corresponding to zero model) and the outcome with zero abundance (Y) simulated according to the above parameter settings. 
+The simulation function returns a dataset with X (the predictor matrix corresponding to count model), Z (the predictor matrix corresponding to zero inflation model) and the outcome with zero abundance (Y) simulated according to the above parameter settings. 
 
 We can do both group level and bi-level selection in zero inflated count data using gooogle function. If we want to do a group level selection we can use any of the penalties among grLasso, grMCP or grSCAD. Below is an example of using gooogle in the simulated dataset using gBridge.
 
@@ -232,7 +232,7 @@ fit.gooogle
 -->
 
 #### Real data  
-Let's try one example on the real data. I am using docvisit dataset from library zic. Similar to previous studies (Jochmann, 2013), we express each continuous predictor as a group of three cubic spline variables, resulting in 24 candidate predictors with 5 triplets and and 9 singleton groups.
+Let's try one example on the real data for which we are using docvisit dataset from library zic. Similar to previous studies (Jochmann, 2013), we express each continuous predictor as a group of three cubic spline variables, resulting in 24 candidate predictors with 5 triplets and and 9 singleton groups.
 
 ####################
 ```r
@@ -253,149 +253,156 @@ attach(docvisits)
 doc.spline<-cbind.data.frame(docvisits$docvisits,age,hlth,hdeg,schl,hhin,handicap,married,children,self,civil,bluec,employed,public,addon)
 
 names(doc.spline)[1:16]<-c("docvisits",paste("age",1:3,sep=""),paste("health",1:3,sep=""),paste("hdegree",1:3,sep=""),paste("schooling",1:3,sep=""),paste("hhincome",1:3,sep=""))
+data<-doc.spline
 ```
 #####################################################################
 
-We can run the gooogle function and calculate MAE and MASE to compare the performance of Gooogle methods with that of EM LASSO.
+Considering the grouping structure among the variables for age, health, hdegree, schooling and hhincome, we can use our algorithm to perform group level or bi level variable selection. Below is an example of implementation of gooogle function using gbridge penalty.
 
 ```r
-  data<-doc.spline
-  group=c(rep(1:5,each=3),(6:14))
-  
-  yvar<-names(data)[1]
-  xvars<-names(data)[-1]
-  zvars<-xvars
+group=c(rep(1:5,each=3),(6:14))
 
-  ################# set up folds for cross-validation ###############
-  ITER<- 100
-  penalties<-c("grLasso", "grMCP", "grSCAD",
-               "gBridge")
-  
-  library(cvTools)
-  folds <- cvFolds(nrow(data), K = 5, R = ITER)
-  cv<-cbind.data.frame(folds$which,folds$subsets)
-  names(cv)<-c("fold",paste("iter",1:ITER,sep=""))
-  
-  ################## compute MAE and MASE for different penalties and likelihood #############
-  measures.list<-list()
-  coeff.list<-list()
-  
-  for(penalty in penalties)
-  {
-      measures<-NULL
-      coeff.count.vec<-NULL
-      coeff.zero.vec<-NULL
-      
-      for (k in 1:ITER)
-      {
-        print(c(penalty,like,k))
-        
-        y.test.comp.vec<-NULL
-        y.pred.comp.vec<-NULL
-        y.train.comp.vec<-NULL
-        
-        time.taken<-0
-        for (i in 1:5)
-        {
-          train.idx<-folds$subsets[folds$which!=i,k]
-          train<-data[train.idx,]
-          test<-data[-train.idx,]
-          
-          ptm<-proc.time()
-          if(penalty=="zeng_Lasso")
-          {
-            fit<-gooogle(data=train,yvar=yvar,xvars=xvars,zvars=zvars,group=rep(1,ncol(data)),samegrp.overlap=T,dist=dist,penalty="gBridge",like=like)} else {
-              fit<-gooogle(data=train,yvar=yvar,xvars=xvars,zvars=zvars,group=group,samegrp.overlap=T,dist=dist,penalty=penalty,like=like)
-            }
-          time.taken<-time.taken+round((proc.time()-ptm)[3],3)
-          
-          z.test<-as.matrix(cbind(1,test[,zvars]))
-          phi.hat<-1/(1+exp(-z.test%*%fit$coefficients$zero))
-          x.test<-as.matrix(cbind(1,test[,xvars]))
-          lam.hat<-exp(x.test%*%fit$coefficients$count)
-          y.pred<-(1-phi.hat)*lam.hat
-          y.test<-test[,yvar]
-          y.train<-train[,yvar]
-         
-          coeff.count<-fit$coefficients$count
-          coeff.zero<-fit$coefficients$zero
-          
-          y.test.comp.vec<-c(y.test.comp.vec,y.test)
-          y.pred.comp.vec<-c(y.pred.comp.vec,y.pred)
-          y.train.comp.vec<-c(y.train.comp.vec,y.train)
+yvar<-names(data)[1]
+xvars<-names(data)[-1]
+zvars<-xvars
 
-          coeff.count.vec<-rbind(coeff.count.vec,c(penalty=penalty,iteration=k,fold=i,coeff.count))
-          coeff.zero.vec<-rbind(coeff.zero.vec,c(penalty=penalty,iteration=k,fold=i,coeff.zero))
-        }
-        
-        forecast <- structure(list(mean=y.pred.comp.vec, fitted=y.test.comp.vec, x=y.train.comp.vec), class='forecast')
-                
-        measures<-rbind(measures,c(iter=k,accuracy(forecast,y.test)[2,],time.taken=time.taken))
-      }
-      #mean.measures<-apply(measures,2,mean)
-      
-      measures.list[[paste(penalty,sep="")]]<-measures[,-c(5:6)]
-      coeff.list[[paste(penalty,sep="")]]<-list(count=coeff.count.vec,zero=coeff.zero.vec)
-  }
-  
-  ################## --------------- Compute same measures for EM ---------------- ########################
-  
-  fit.formula<-as.formula(paste(yvar,"~",paste(paste(xvars,collapse="+"),"|",paste(zvars,collapse="+")),sep=""))
-  
-  coeff.count.vec_EM<-NULL
-  coeff.zero.vec_EM<-NULL
-  measures_EM<-NULL
-    
-  for (k in 1:100)
+fit.gooogle <- gooogle(data=data,yvar=yvar,xvars=xvars,zvars=zvars,group=group,dist="negbin",penalty="gBridge")
+fit.gooogle
+```
+
+The code below uses 100 iterations of 5 fold CV on the docvisit data to calculate MAE and MASE and demonstrates the performance of Gooogle methods as compared to EM LASSO.
+
+```r
+library(cvTools)
+library(forecast)
+library(mpath)
+
+ITER<- 100
+K<-5
+set.seed(123)
+
+penalties<-c("grLasso", "grMCP", "grSCAD", "gBridge")
+
+folds <- cvFolds(nrow(data), K = K, R = ITER)
+cv<-cbind.data.frame(folds$which,folds$subsets)
+names(cv)<-c("fold",paste("iter",1:ITER,sep=""))
+
+################## compute MAE and MASE for different penalties and likelihood #############
+measures.list<-list()
+coeff.list<-list()
+
+for(penalty in penalties)
+{
+  measures<-NULL
+  coeff.count.vec<-NULL
+  coeff.zero.vec<-NULL
+
+  for (k in 1:ITER)
   {
-    print(c("EM_Lasso",k))
-    
+    print(c(penalty,k))
+
     y.test.comp.vec<-NULL
     y.pred.comp.vec<-NULL
     y.train.comp.vec<-NULL
-    
+
     time.taken<-0
-    for (i in 1:5)
+    for (i in 1:K)
     {
       train.idx<-folds$subsets[folds$which!=i,k]
       train<-data[train.idx,]
       test<-data[-train.idx,]
-      
+
       ptm<-proc.time()
-      fit.em<-zipath(formula=fit.formula,data=train,family=dist)
+      fit<-gooogle(data=train,yvar=yvar,xvars=xvars,zvars=zvars,group=group,dist="negbin",penalty=penalty)
+
       time.taken<-time.taken+round((proc.time()-ptm)[3],3)
-      
-      gammahat<-fit.em$coefficients$zero[,bic.idx]
-      betahat<-fit.em$coefficients$count[,bic.idx]
+
       z.test<-as.matrix(cbind(1,test[,zvars]))
-      phi.hat<-1/(1+exp(-z.test%*%gammahat))
+      phi.hat<-1/(1+exp(-z.test%*%fit$coefficients$zero))
       x.test<-as.matrix(cbind(1,test[,xvars]))
-      lam.hat<-exp(x.test%*%betahat)
+      lam.hat<-exp(x.test%*%fit$coefficients$count)
       y.pred<-(1-phi.hat)*lam.hat
       y.test<-test[,yvar]
       y.train<-train[,yvar]
-      coeff.count_EM<-betahat
-      coeff.zero_EM<-gammahat
-      
+
+      coeff.count<-fit$coefficients$count
+      coeff.zero<-fit$coefficients$zero
+
       y.test.comp.vec<-c(y.test.comp.vec,y.test)
       y.pred.comp.vec<-c(y.pred.comp.vec,y.pred)
       y.train.comp.vec<-c(y.train.comp.vec,y.train)
-      coeff.count.vec_EM<-rbind(coeff.count.vec_EM,c(penalty=penalty,iteration=k,fold=i,coeff.count_EM))
-      coeff.zero.vec_EM<-rbind(coeff.zero.vec_EM,c(penalty=penalty,iteration=k,fold=i,coeff.zero_EM))
+
+      coeff.count.vec<-rbind(coeff.count.vec,c(penalty=penalty,iteration=k,fold=i,coeff.count))
+      coeff.zero.vec<-rbind(coeff.zero.vec,c(penalty=penalty,iteration=k,fold=i,coeff.zero))
     }
-    
+
     forecast <- structure(list(mean=y.pred.comp.vec, fitted=y.test.comp.vec, x=y.train.comp.vec), class='forecast')
-    
-    measures_EM<-rbind(measures_EM,c(iter=k,accuracy(forecast,y.test)[2,],time=time.taken))
+
+    measures<-rbind(measures,c(iter=k,accuracy(forecast,y.test)[2,c(3,6)],time.taken=time.taken))
   }
-  coeff.list[["EM"]]<-list(count=coeff.count.vec_EM,zero=coeff.zero.vec_EM)
-  
-  measures.list[["EM"]]<-measures_EM[,-c(5:6)]
-  
-  ########### doc.cv_dist is the final output containing the measures for all methods including EM and coefficients are saved for each fold within each iteration #########################
-  
-  doc.cv<-list(measures=measures.list,coeff=coeff.list,cv=cv)
-  ```
+  measures.list[[paste(penalty,sep="")]]<-measures
+  coeff.list[[paste(penalty,sep="")]]<-list(count=coeff.count.vec,zero=coeff.zero.vec)
+}
+
+# --------------- Compute same measures for EM ---------------- #
+
+fit.formula<-as.formula(paste(yvar,"~",paste(paste(xvars,collapse="+"),"|",paste(zvars,collapse="+")),sep=""))
+
+coeff.count.vec_EM<-NULL
+coeff.zero.vec_EM<-NULL
+measures_EM<-NULL
+
+for (k in 1:ITER)
+{
+  print(c("EM_Lasso",k))
+
+  y.test.comp.vec<-NULL
+  y.pred.comp.vec<-NULL
+  y.train.comp.vec<-NULL
+
+  time.taken<-0
+  for (i in 1:K)
+  {
+    train.idx<-folds$subsets[folds$which!=i,k]
+    train<-data[train.idx,]
+    test<-data[-train.idx,]
+
+    ptm<-proc.time()
+    fit.em<-zipath(formula=fit.formula,data=train,family="negbin")
+    time.taken<-time.taken+round((proc.time()-ptm)[3],3)
+
+    bic.idx<-which.min(fit.em$bic)
+    gammahat<-fit.em$coefficients$zero[,bic.idx]
+    betahat<-fit.em$coefficients$count[,bic.idx]
+    z.test<-as.matrix(cbind(1,test[,zvars]))
+    phi.hat<-1/(1+exp(-z.test%*%gammahat))
+    x.test<-as.matrix(cbind(1,test[,xvars]))
+    lam.hat<-exp(x.test%*%betahat)
+    y.pred<-(1-phi.hat)*lam.hat
+    y.test<-test[,yvar]
+    y.train<-train[,yvar]
+    coeff.count_EM<-betahat
+    coeff.zero_EM<-gammahat
+
+    y.test.comp.vec<-c(y.test.comp.vec,y.test)
+    y.pred.comp.vec<-c(y.pred.comp.vec,y.pred)
+    y.train.comp.vec<-c(y.train.comp.vec,y.train)
+    coeff.count.vec_EM<-rbind(coeff.count.vec_EM,c(penalty=penalty,iteration=k,fold=i,coeff.count_EM))
+    coeff.zero.vec_EM<-rbind(coeff.zero.vec_EM,c(penalty=penalty,iteration=k,fold=i,coeff.zero_EM))
+  }
+
+  forecast <- structure(list(mean=y.pred.comp.vec, fitted=y.test.comp.vec, x=y.train.comp.vec), class='forecast')
+
+  measures_EM<-rbind(measures_EM,c(iter=k,accuracy(forecast,y.test)[2,c(3,6)],time=time.taken))
+}
+coeff.list[["EM"]]<-list(count=coeff.count.vec_EM,zero=coeff.zero.vec_EM)
+
+measures.list[["EM"]]<-measures_EM
+
+########### doc.cv_dist is the final output containing the measures for all methods including EM and coefficients are saved for each fold within each iteration #########################
+
+doc.cv<-list(measures=measures.list,coeff=coeff.list,cv=cv)
+```
 
 ## Citation
 
