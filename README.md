@@ -12,7 +12,7 @@ With the above formulation, we are able to achieve bi-level variable selection b
 You can install our Gooogle package from Github
 ```r
 install.packages("devtools")
-devtools::install_github("/Gooogle")
+devtools::install_github("himelmallick/Gooogle")
 library(Gooogle)
 ```
 
