@@ -65,7 +65,7 @@ data<-doc.spline
 ```
 #####################################################################
 
-Considering the grouping structure among the variables for age, health, hdegree, schooling and hhincome, we can use our algorithm to perform group level or bi level variable selection. Below is an example of implementation of gooogle function using gbridge penalty.
+Considering the grouping structure among the variables for age, health, hdegree, schooling and hhincome, we can use our algorithm to perform group level or bi level variable selection. Below is an example of implementation of gooogle function using gBridge penalty.
 
 ```r
 group=c(rep(1:5,each=3),(6:14))
