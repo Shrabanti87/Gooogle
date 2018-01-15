@@ -9,6 +9,8 @@ The details of the statistical model are as follows:
 
 With the above formulation, we are able to achieve bi-level variable selection both zero and count models. The tuning parameter of the final model can be chosen according to the minimum AIC/BIC criteria.  
 
+## Installation
+
 You can install our Gooogle package from Github
 ```r
 install.packages("devtools")
