@@ -5,7 +5,7 @@ Zero-inflated count data are omnipresent in many fields including health care re
 
 The details of the statistical model are as follows:
 
-<img src="misc/github.pdf" width="600" align="center">
+<img src="misc/github.png" width="600" align="center">
 
 With the above formulation, we are able to achieve bi-level variable selection both zero and count models. The tuning parameter of the final model can be chosen according to the minimum AIC/BIC criteria.  
 
