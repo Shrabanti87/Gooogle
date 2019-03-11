@@ -92,4 +92,4 @@ ated count models with an application to the demand for health care. Computation
 
 
 ## Contact
-Feel free to contact us at <schatterjee@niu.edu> and/or <gg0658@wayne.edu>
+Feel free to contact us at <schatterjee@niu.edu> and/or <shrabanti.howdhury@mssm.edu>
